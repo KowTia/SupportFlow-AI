@@ -7,14 +7,23 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
-from app.models.ticket import TicketCategory, TicketPriority, TicketStatus
-from app.schemas.ticket import TicketCreate, TicketListResponse, TicketResponse, TicketUpdate
+from app.llm import LLMProviderError
+from app.models.ticket import Ticket, TicketCategory, TicketPriority, TicketStatus
+from app.schemas.ticket import (
+    TicketAnalysisResponse,
+    TicketApproveRequest,
+    TicketCreate,
+    TicketListResponse,
+    TicketResponse,
+    TicketUpdate,
+)
 from app.services.tickets import (
     create_ticket_idempotent,
     get_ticket_by_id,
     list_tickets,
     update_ticket,
 )
+from app.services.triage import analyze_and_triage_ticket, approve_and_route_ticket
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
@@ -28,6 +37,7 @@ async def create_ticket_endpoint(
         str | None,
         Header(alias="Idempotency-Key", min_length=4, max_length=128),
     ] = None,
+    auto_analyze: Annotated[bool, Query()] = False,
 ) -> TicketResponse:
     """Create a support ticket with idempotency support via header, body, or content hash."""
     ticket, created = await create_ticket_idempotent(
@@ -35,6 +45,15 @@ async def create_ticket_endpoint(
         payload,
         header_key=idempotency_key,
     )
+    if auto_analyze and created:
+        try:
+            ticket, _ = await analyze_and_triage_ticket(session, ticket)
+        except LLMProviderError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(exc),
+            ) from exc
+
     response.status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
     response.headers["X-Idempotent-Replay"] = "false" if created else "true"
     return TicketResponse.model_validate(ticket)
@@ -66,18 +85,24 @@ async def list_tickets_endpoint(
     )
 
 
-@router.get("/{ticket_id}", response_model=TicketResponse)
-async def get_ticket_endpoint(
-    ticket_id: uuid.UUID,
-    session: Annotated[AsyncSession, Depends(get_db_session)],
-) -> TicketResponse:
-    """Retrieve a single ticket by UUID."""
+async def _get_ticket_or_404(session: AsyncSession, ticket_id: uuid.UUID) -> Ticket:
+    """Fetch a ticket by UUID or raise HTTP 404."""
     ticket = await get_ticket_by_id(session, ticket_id)
     if ticket is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ticket not found",
         )
+    return ticket
+
+
+@router.get("/{ticket_id}", response_model=TicketResponse)
+async def get_ticket_endpoint(
+    ticket_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> TicketResponse:
+    """Retrieve a single ticket by UUID."""
+    ticket = await _get_ticket_or_404(session, ticket_id)
     return TicketResponse.model_validate(ticket)
 
 
@@ -88,11 +113,49 @@ async def update_ticket_endpoint(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> TicketResponse:
     """Update triage fields or review status for an existing ticket."""
-    ticket = await get_ticket_by_id(session, ticket_id)
-    if ticket is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Ticket not found",
-        )
+    ticket = await _get_ticket_or_404(session, ticket_id)
     updated = await update_ticket(session, ticket, payload)
     return TicketResponse.model_validate(updated)
+
+
+@router.post("/{ticket_id}/analyze", response_model=TicketResponse)
+async def analyze_ticket_endpoint(
+    ticket_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> TicketResponse:
+    """Run RAG + LLM triage analysis on an existing ticket."""
+    ticket = await _get_ticket_or_404(session, ticket_id)
+    try:
+        updated_ticket, _ = await analyze_and_triage_ticket(session, ticket)
+    except LLMProviderError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
+    return TicketResponse.model_validate(updated_ticket)
+
+
+@router.post("/{ticket_id}/approve", response_model=TicketResponse)
+async def approve_ticket_endpoint(
+    ticket_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    payload: TicketApproveRequest | None = None,
+) -> TicketResponse:
+    """Approve an analyzed ticket (with optional operator edits) and dispatch integrations."""
+    ticket = await _get_ticket_or_404(session, ticket_id)
+    updated = await approve_and_route_ticket(
+        session,
+        ticket,
+        payload or TicketApproveRequest(),
+    )
+    return TicketResponse.model_validate(updated)
+
+
+@router.get("/{ticket_id}/analyses", response_model=list[TicketAnalysisResponse])
+async def list_ticket_analyses_endpoint(
+    ticket_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> list[TicketAnalysisResponse]:
+    """List persisted LLM triage analyses for a ticket ordered newest first."""
+    ticket = await _get_ticket_or_404(session, ticket_id)
+    return [TicketAnalysisResponse.model_validate(item) for item in ticket.analyses]

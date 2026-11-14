@@ -10,7 +10,10 @@ from app.schemas.kb import (
     KBSeedResponse,
 )
 from app.schemas.ticket import (
+    DashboardMetricsResponse,
     DeliveryLogResponse,
+    TicketAnalysisResponse,
+    TicketApproveRequest,
     TicketCreate,
     TicketListResponse,
     TicketResponse,
@@ -18,6 +21,7 @@ from app.schemas.ticket import (
 )
 
 __all__ = [
+    "DashboardMetricsResponse",
     "DeliveryLogResponse",
     "KBArticleCreate",
     "KBArticleListResponse",
@@ -26,6 +30,8 @@ __all__ = [
     "KBSearchRequest",
     "KBSearchResponse",
     "KBSeedResponse",
+    "TicketAnalysisResponse",
+    "TicketApproveRequest",
     "TicketCreate",
     "TicketListResponse",
     "TicketResponse",

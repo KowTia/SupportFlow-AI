@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://supportflow:supportflow@localhost:5432/supportflow"
     redis_url: str = "redis://localhost:6379/0"
+    celery_task_always_eager: bool = True
 
     llm_provider: str = "mock"
     llm_fallback_provider: str = "mock"

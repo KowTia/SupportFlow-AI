@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.api.kb import router as kb_router
+from app.api.metrics import router as metrics_router
 from app.api.tickets import router as tickets_router
 from app.core.config import get_settings
 
@@ -28,6 +29,7 @@ def create_app() -> FastAPI:
     application.include_router(health_router)
     application.include_router(tickets_router, prefix=settings.api_v1_prefix)
     application.include_router(kb_router, prefix=settings.api_v1_prefix)
+    application.include_router(metrics_router, prefix=settings.api_v1_prefix)
     return application
 
 

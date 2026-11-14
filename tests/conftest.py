@@ -14,8 +14,8 @@ from app.main import app
 
 
 @pytest.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Provide an isolated in-memory SQLite async session per test."""
+async def db_session_factory() -> AsyncGenerator[async_sessionmaker[AsyncSession], None]:
+    """Provide an isolated in-memory SQLite async session factory per test."""
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -29,12 +29,20 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         class_=AsyncSession,
         expire_on_commit=False,
     )
-    async with session_factory() as session:
-        yield session
+    yield session_factory
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
+
+
+@pytest.fixture
+async def db_session(
+    db_session_factory: async_sessionmaker[AsyncSession],
+) -> AsyncGenerator[AsyncSession, None]:
+    """Provide an isolated in-memory SQLite async session per test."""
+    async with db_session_factory() as session:
+        yield session
 
 
 @pytest.fixture

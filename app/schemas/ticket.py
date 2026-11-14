@@ -37,6 +37,42 @@ class TicketUpdate(BaseModel):
     draft_reply: str | None = Field(default=None, max_length=20000)
 
 
+class TicketApproveRequest(BaseModel):
+    """Operator approval payload with optional edits before outbound routing."""
+
+    category: TicketCategory | None = None
+    priority: TicketPriority | None = None
+    assigned_team: str | None = Field(default=None, max_length=64)
+    draft_reply: str | None = Field(default=None, max_length=20000)
+
+
+class TicketAnalysisResponse(BaseModel):
+    """Serialized LLM + RAG triage analysis record."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    ticket_id: uuid.UUID
+    provider: str
+    model: str
+    category: TicketCategory
+    priority: TicketPriority
+    assigned_team: str
+    summary: str
+    draft_reply: str
+    confidence: float
+    needs_human_review: bool
+    reasoning: str
+    cited_kb_ids: list[str]
+    injection_detected: bool
+    injection_risk_score: float
+    injection_patterns: list[str]
+    repair_attempts: int
+    fallback_used: bool
+    latency_ms: float
+    created_at: datetime
+
+
 class DeliveryLogResponse(BaseModel):
     """Serialized outbound delivery audit record."""
 
@@ -76,6 +112,7 @@ class TicketResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     delivery_logs: list[DeliveryLogResponse] = Field(default_factory=list)
+    analyses: list[TicketAnalysisResponse] = Field(default_factory=list)
 
 
 class TicketListResponse(BaseModel):
@@ -85,3 +122,21 @@ class TicketListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class DashboardMetricsResponse(BaseModel):
+    """Aggregated operational and AI quality metrics for the operator dashboard."""
+
+    total_tickets: int
+    tickets_by_status: dict[str, int]
+    tickets_by_category: dict[str, int]
+    tickets_by_priority: dict[str, int]
+    total_analyses: int
+    avg_confidence: float
+    avg_latency_ms: float
+    human_review_rate: float
+    injection_detected_count: int
+    total_repair_attempts: int
+    total_deliveries: int
+    deliveries_by_status: dict[str, int]
+    deliveries_by_target: dict[str, int]

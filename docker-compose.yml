@@ -43,6 +43,24 @@ services:
       redis:
         condition: service_healthy
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A app.workers.celery_app:celery_app worker --loglevel=info
+    env_file:
+      - .env.example
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-supportflow}:${POSTGRES_PASSWORD:-supportflow}@db:5432/${POSTGRES_DB:-supportflow}
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_BASE_URL: http://ollama:11434
+      CELERY_TASK_ALWAYS_EAGER: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   ollama:
     image: ollama/ollama:latest
     profiles: ["ollama"]

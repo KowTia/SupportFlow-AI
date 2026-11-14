@@ -3,12 +3,15 @@
 import uuid
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.analysis import TicketAnalysis
 
 
 def _enum_values(enum_cls: type[StrEnum]) -> list[str]:
@@ -141,6 +144,12 @@ class Ticket(Base):
         back_populates="ticket",
         cascade="all, delete-orphan",
         lazy="selectin",
+    )
+    analyses: Mapped[list["TicketAnalysis"]] = relationship(
+        back_populates="ticket",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="TicketAnalysis.created_at.desc()",
     )
 
 

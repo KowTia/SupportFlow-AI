@@ -1,5 +1,6 @@
 """ORM models for SupportFlow AI."""
 
+from app.models.analysis import TicketAnalysis
 from app.models.kb import EMBEDDING_DIM, EmbeddingVector, KBArticle
 from app.models.ticket import (
     DeliveryLog,
@@ -19,6 +20,7 @@ __all__ = [
     "EmbeddingVector",
     "KBArticle",
     "Ticket",
+    "TicketAnalysis",
     "TicketCategory",
     "TicketPriority",
     "TicketStatus",
