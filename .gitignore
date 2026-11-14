@@ -27,6 +27,7 @@ htmlcov/
 # Frontend
 node_modules/
 frontend/dist/
+*.tsbuildinfo
 
 # IDEs & OS
 .vscode/

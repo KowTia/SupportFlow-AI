@@ -1,4 +1,4 @@
-.PHONY: install lint format test migrate run up down
+.PHONY: install lint format test migrate run up down frontend-install frontend-lint frontend-build frontend-dev
 
 PYTHON ?= python
 RUFF ?= ruff
@@ -25,6 +25,18 @@ migrate:
 
 run:
 	$(UVICORN) app.main:app --reload --host 0.0.0.0 --port 8000
+
+frontend-install:
+	cd frontend && npm install
+
+frontend-lint:
+	cd frontend && npm run typecheck
+
+frontend-build:
+	cd frontend && npm run build
+
+frontend-dev:
+	cd frontend && npm run dev
 
 up:
 	docker compose up -d --build
