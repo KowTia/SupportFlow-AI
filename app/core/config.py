@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     google_sheets_spreadsheet_id: str = "demo-spreadsheet-id"
     google_sheets_credentials_json: str = ""
 
+    embedding_provider: str = "hash"
+    embedding_dim: int = 64
+    rag_top_k: int = 3
+    rag_min_score: float = 0.15
+
     @property
     def cors_origin_list(self) -> list[str]:
         """Return parsed list of allowed CORS origins."""
