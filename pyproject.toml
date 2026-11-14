@@ -6,7 +6,20 @@ build-backend = "setuptools.build_meta"
 name = "supportflow-ai"
 version = "0.1.0"
 description = "AI-powered support ticket ingestion, RAG analysis, validation, and routing platform."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "kowtia", email = "egorbel3@gmail.com" }]
 requires-python = ">=3.12"
+keywords = ["fastapi", "rag", "pgvector", "llm", "celery", "support-automation", "pydantic"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: FastAPI",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
@@ -30,6 +43,11 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "ruff>=0.7.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/KowTia/SupportFlow-AI"
+Repository = "https://github.com/KowTia/SupportFlow-AI"
+Issues = "https://github.com/KowTia/SupportFlow-AI/issues"
 
 [tool.setuptools.packages.find]
 include = ["app*"]
