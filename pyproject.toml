@@ -19,6 +19,7 @@ dependencies = [
     "alembic>=1.13.3",
     "pgvector>=0.3.5",
     "celery>=5.4.0",
+    "packaging>=24.0",
     "redis>=5.1.0",
     "httpx>=0.27.2",
 ]
