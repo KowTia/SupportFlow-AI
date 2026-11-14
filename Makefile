@@ -1,4 +1,4 @@
-.PHONY: install lint format test migrate run up down frontend-install frontend-lint frontend-build frontend-dev
+.PHONY: install lint format test eval migrate run up down frontend-install frontend-lint frontend-build frontend-dev
 
 PYTHON ?= python
 RUFF ?= ruff
@@ -19,6 +19,9 @@ format:
 
 test:
 	$(PYTEST) -v
+
+eval:
+	$(PYTHON) -m evals.run_eval --min-category-accuracy 0.95
 
 migrate:
 	$(ALEMBIC) upgrade head
